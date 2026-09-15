@@ -108,7 +108,7 @@ nav.scrolled { background: rgba(26,18,32,.88); box-shadow: 0 24px 55px rgba(20,1
 .s { padding: 100px 80px; position: relative; }
 .ey { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--ginger); margin-bottom: 18px; }
 .ey .d { width: 5px; height: 5px; border-radius: 50%; background: var(--ginger); }
-.h2 { font-family: var(--serif); font-size: clamp(34px, 4vw, 58px); font-weight: 500; color: var(--ink); line-height: 1.1; letter-spacing: -.01em; margin-bottom: 14px; }
+.h2 { font-family: var(--serif); font-size: clamp(34px, 4vw, 58px); font-weight: 400; color: var(--ink); line-height: 1.1; letter-spacing: -.01em; margin-bottom: 14px; }
 .h2 em { font-style: italic; color: var(--crown); }
 .desc { font-size: 15px; color: var(--muted); line-height: 1.75; max-width: 560px; }
 
@@ -133,12 +133,12 @@ nav.scrolled { background: rgba(26,18,32,.88); box-shadow: 0 24px 55px rgba(20,1
    COMPONENTES GLOBALES
    ========================================================================== */
 /* COLLECTION BAND */
-.cband { display: grid; grid-template-columns: repeat(5, 1fr); height: 68px; }
+.cband { display: grid; grid-template-columns: repeat(5, 1fr); height: 150px; }
 .cb { display: flex; align-items: center; justify-content: center; cursor: pointer; transition: flex .4s var(--ease); flex: 1; overflow: hidden; }
 .cb:hover { flex: 2; }
 .cb-logo {
-  max-height: 40px; /* Ajusta este valor si tus logos se ven muy grandes o pequeños */
-  width: auto;
+  max-height: 100px; /* Ajusta este valor si tus logos se ven muy grandes o pequeños */
+  max-width: 120px;
   transition: transform 0.3s ease;
   padding: 0 10px; /* Evita que toquen los bordes si la pantalla es pequeña */
 }
@@ -149,11 +149,11 @@ nav.scrolled { background: rgba(26,18,32,.88); box-shadow: 0 24px 55px rgba(20,1
 }
 .cb-lbl { font-family: var(--serif); font-size: 12.5px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; transition: font-size .3s; white-space: nowrap; }
 .cb:hover .cb-lbl { font-size: 14.5px; }
-.cb1 { background: linear-gradient(135deg, #1a1120, #1a1120); }
-.cb2 { background: linear-gradient(135deg, #3f2a4e, #3f2a4e); }
-.cb3 { background: linear-gradient(135deg, #FBF3E4, #EDDCC0); }
-.cb4 { background: linear-gradient(135deg, #FFF2B8, #E8B923); }
-.cb5 { background: linear-gradient(135deg, #FCFCFE, #C4C4CE 45%, #EFEFF4 72%, #AEAEBA); }
+.cb1 { background: linear-gradient(135deg, #1a1120, #482d54); }
+.cb2 { background: linear-gradient(135deg, #6d4e7f, #482d54); }
+.cb3 { background: linear-gradient(135deg, #fffffb, #ede1d3); }
+.cb4 { background: linear-gradient(135deg, #d0c2ba, #fffffb, #e0d6d1); }
+.cb5 { background: linear-gradient(135deg, #c3c2bd, #fffffb 45%, #b7b6b6 72%); }
 .cb1 .cb-lbl, .cb2 .cb-lbl { color: rgba(255,255,255,.9); }
 .cb3 .cb-lbl { color: #5A3A20; } .cb4 .cb-lbl { color: #4A3000; } .cb5 .cb-lbl { color: #3A3A3A; }
 
@@ -277,7 +277,7 @@ footer { background: var(--ink); padding: 56px 80px 30px; position: relative; ov
 .hero-spot { position: absolute; inset: 0; background: radial-gradient(circle 460px at 50% 40%, rgba(139,106,154,.28), transparent 70%); pointer-events: none; transition: background .05s; }
 .hey { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: #E8D5C0; margin-bottom: 22px; }
 .hey-line { width: 30px; height: 1px; background: #E8D5C0; }
-.hero-h1 { font-family: var(--serif); font-size: clamp(50px, 5.5vw, 82px); font-weight: 500; line-height: 1.05; color: #fff; margin-bottom: 26px; letter-spacing: -.01em; position: relative; z-index: 2; }
+.hero-h1 { font-family: var(--serif); font-size: clamp(50px, 5.5vw, 82px); font-weight: 400; line-height: 1.05; color: #fff; margin-bottom: 26px; letter-spacing: -.01em; position: relative; z-index: 2; }
 .hero-h1 em { font-style: italic; color: #E8D5C0; }
 .hero-h1 .lt { font-weight: 400; color: rgba(255,255,255,.5); }
 .hero-sub { font-size: 15.5px; color: rgba(255,255,255,.5); line-height: 1.75; max-width: 430px; margin-bottom: 40px; position: relative; z-index: 2; }
