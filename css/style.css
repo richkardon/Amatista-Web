@@ -817,6 +817,18 @@ footer { background: var(--ink); padding: 56px 80px 30px; position: relative; ov
     max-width: 85%;
     padding: 0;
   }
+  
+  /* Mostrar y estilizar la foto de inicio en celulares */
+  .hero-vis {
+    display: block !important; /* Fuerza a que la foto no se oculte */
+    width: 100%;
+    height: 380px; /* Altura ideal para un retrato en móvil */
+    margin-top: 32px; /* Separación entre el botón y la foto */
+  }
+  
+  .hero-main {
+    height: 100%; 
+  }
 }
 
 @media(max-width: 600px) {
