@@ -137,8 +137,9 @@ nav.scrolled { background: rgba(26,18,32,.88); box-shadow: 0 24px 55px rgba(20,1
 .cb { display: flex; align-items: center; justify-content: center; cursor: pointer; transition: flex .4s var(--ease); flex: 1; overflow: hidden; }
 .cb:hover { flex: 2; }
 .cb-logo {
-  max-height: 100px; /* Ajusta este valor si tus logos se ven muy grandes o pequeños */
-  max-width: 120px;
+  max-height: 150
+  px; /* Ajusta este valor si tus logos se ven muy grandes o pequeños */
+  max-width: 180px;
   transition: transform 0.3s ease;
   padding: 0 10px; /* Evita que toquen los bordes si la pantalla es pequeña */
 }
