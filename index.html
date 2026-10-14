@@ -182,23 +182,49 @@
 </div></div>
 <section class="s" id="sim-anchor" style="padding-bottom:0;text-align:center;"><div class="ey" style="justify-content:center;"><span class="d"></span>Pruébalo en vivo</div><h2 class="h2">Miro cómo luzco<br><em>con cada colección</em></h2><p class="desc" style="margin:0 auto;">Activo mi cámara, sonrío, y veo en tiempo real cómo cambiaría mi sonrisa con cada una de las 5 colecciones Amatista.</p></section>
 <div class="prwrap"><div class="prlay">
-<div class="cpanel">
-  <div class="cview"><video id="cv" autoplay muted playsinline></video><canvas id="cc"></canvas>
-    <div class="cov" id="cov"><div class="cov-ico"><svg class="ic"><use href="#i-camera"/></svg></div><div class="cov-t">Pruebo mi sonrisa</div><div class="cov-s">Activo mi cámara y sonrío para ver cómo luzco con cada colección Amatista</div><button class="btn-p" onclick="startCam()">Quiero activar mi cámara <svg class="ic"><use href="#i-arrow"/></svg></button></div>
-    <div class="sg" id="sg"><div class="sg-ov"><div class="sg-mh"></div></div></div>
+<!-- === NUEVO MÓDULO DE INTELIGENCIA ARTIFICIAL === -->
+<div class="cam-container" style="max-width: 720px; margin: 0 auto; width: 100%;">
+  
+  <!-- 1. VISTA DE CAPTURA -->
+  <div id="capView">
+    <div class="stage">
+      <video id="video" playsinline muted autoplay></video>
+      <div class="guide"></div>
+      <div class="proc" id="proc" hidden>
+        <div class="spin"></div>
+        <div style="font-family: var(--serif); margin-top:10px;">Diseñando tu sonrisa...</div>
+      </div>
+    </div>
+    
+    <div class="cctrl" style="margin-top:20px; text-align:center; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+      <button class="btn-p" id="startBtn" style="flex:1; min-width: 140px;">Activar cámara</button>
+      <button class="btn-p" id="shotBtn" disabled style="flex:1; min-width: 140px;"><svg class="ic" style="width:20px;height:20px;fill:#fff;margin-right:8px;"><use href="#i-camera"/></svg> Tomar foto</button>
+      <label class="btn-g" style="cursor:pointer; flex:1; min-width: 140px; display:flex; align-items:center; justify-content:center;">Subir foto <input type="file" id="fileIn" accept="image/*" hidden></label>
+    </div>
+    <div class="err" id="err" hidden></div>
   </div>
-  <div class="cosel" id="cosel" style="display:none;">
-    <div class="cos on" onclick="selCol('3d',this)"><div class="cos-sw" style="background:linear-gradient(135deg,#7B5A90,#482D54);"></div><div class="cos-lbl">3D</div></div>
-    <div class="cos" onclick="selCol('emax',this)"><div class="cos-sw" style="background:linear-gradient(135deg,#5C2A52,#2B1228);"></div><div class="cos-lbl">E·MAX</div></div>
-    <div class="cos" onclick="selCol('natura',this)"><div class="cos-sw" style="background:linear-gradient(135deg,#FBF3E4,#EDDCC0);border:1px solid #C8B090;"></div><div class="cos-lbl">NATURA</div></div>
-    <div class="cos" onclick="selCol('glow',this)"><div class="cos-sw" style="background:linear-gradient(135deg,#FFF2B8,#E8B923);"></div><div class="cos-lbl">GLOW</div></div>
-    <div class="cos" onclick="selCol('prisma',this)"><div class="cos-sw" style="background:linear-gradient(135deg,#FCFCFE,#AEAEBA);"></div><div class="cos-lbl">PRISMA</div></div>
+
+  <!-- 2. VISTA DE RESULTADOS (Oculta por defecto) -->
+  <div id="resView" hidden>
+    <div class="cmp" id="cmp">
+      <canvas id="beforeC"></canvas>
+      <canvas id="afterC"></canvas>
+      <div class="divider" id="divider"></div>
+      <span class="tag" style="left:10px">Antes</span>
+      <span class="tag" style="right:10px">Después</span>
+    </div>
+    
+    <!-- Botones de las Colecciones Amatista -->
+    <div class="styles" id="styles"></div>
+    
+    <div class="cctrl" style="margin-top:20px; display: flex; gap: 10px; flex-wrap: wrap;">
+      <button class="btn-p" id="dlBtn" style="flex:1; min-width: 140px;">Descargar foto</button>
+      <button class="btn-g" id="againBtn" style="flex:1; min-width: 140px;">Tomar otra</button>
+    </div>
   </div>
-  <div class="cctrl" id="cctrl" style="display:none;">
-    <button class="btn-p" onclick="capPhoto()"><svg class="ic"><use href="#i-camera"/></svg>Quiero capturar mi foto</button>
-    <button class="btn-g" onclick="resetCam()">Quiero reiniciar</button>
-  </div>
+
 </div>
+<!-- === FIN NUEVO MÓDULO === -->
 <div class="prsteps">
   <div class="prs on" id="ps1"><div class="prs-n">1</div><div class="prs-t">Activo mi cámara</div><div class="prs-d">Hago clic en "Quiero activar mi cámara" y permito el acceso cuando el navegador lo solicite.</div></div>
   <div class="prs" id="ps2"><div class="prs-n">2</div><div class="prs-t">Sonrío y elijo mi colección</div><div class="prs-d">Selecciono cada colección en el panel inferior para ver el tono sobre mi sonrisa.</div></div>
@@ -1001,6 +1027,6 @@
 </div>
 
   <!-- Aquí enlazamos tu nuevo archivo de JavaScript externo -->
-  <script src="js/main.js"></script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

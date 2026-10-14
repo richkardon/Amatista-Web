@@ -243,90 +243,310 @@ function qreset() {
 }
 
 /* ==========================================================================
-   SIMULADOR DE CÁMARA
+   SIMULADOR DE CÁMARA (IA AVANZADA - MEDIAPIPE)
    ========================================================================== */
-let stream = null, curCol = '3d', photoDone = false;
-const CD = {
-  '3d': { n: 'Diseño 3D', d: 'La colección de entrada al diseño digital. Resina + zirconio para un resultado accesible.', hbg: 'linear-gradient(135deg,#7B5A90,#482D54)', hc: '#fff', ov: 'rgba(180,160,210,0.28)' },
-  'emax': { n: 'E·MAX', d: 'El gold standard mundial. Disilicato de litio con uniformidad y alta durabilidad.', hbg: 'linear-gradient(135deg,#5C2A52,#2B1228)', hc: '#fff', ov: 'rgba(140,120,180,0.22)' },
-  'natura': { n: 'Natura', d: 'La sonrisa más natural. E-MAX estratificado con translucidez y mamelones reales.', hbg: 'linear-gradient(135deg,#EDDCC0,#D8C4A0)', hc: '#3A2010', ov: 'rgba(240,220,190,0.32)' },
-  'glow': { n: 'Glow', d: 'Porcelana 100% premium. El brillo más intenso y una sonrisa que conquista.', hbg: 'linear-gradient(135deg,#FFF2B8,#E8B923)', hc: '#3A2800', ov: 'rgba(245,220,120,0.32)' },
-  'prisma': { n: 'Prisma', d: 'El nivel más exclusivo. Cortes prismáticos que crean reflexión de luz irrepetible.', hbg: 'linear-gradient(135deg,#FCFCFE,#AEAEBA)', hc: '#282828', ov: 'rgba(220,220,220,0.38)' }
+import { FilesetResolver, FaceLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest";
+
+const WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm";
+const MODEL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+const INNER_LIP = [78,191,80,81,82,13,312,311,310,415,308,324,318,402,317,14,87,178,88,95];
+const CHEEKS = [205, 425];
+const MAX_SIDE = 1600;     
+const MIN_PROC_MS = 1700;  
+
+/* Parámetros adaptados a las Colecciones Amatista */
+const STYLES = {
+  '3d':      { name: "Diseño 3D", lift:0.4, keep:0.9, bK:0.6, aK:0.8, even:0.3, smooth:0, gaps:0 },
+  'emax':    { name: "E·MAX",     lift:0.7, keep:0.8, bK:0.3, aK:0.5, even:0.5, smooth:0.2, gaps:0 },
+  'natura':  { name: "Natura",    lift:0.6, keep:0.9, bK:0.4, aK:0.7, even:0.4, smooth:0.1, gaps:0 },
+  'glow':    { name: "Glow",      lift:0.9, keep:0.6, bK:0.1, aK:0.3, even:0.7, smooth:0.5, gaps:0.2 },
+  'prisma':  { name: "Prisma",    lift:0.95,keep:0.5, bK:0.05,aK:0.2, even:0.8, smooth:0.8, gaps:0.5 }
 };
+let current = "3d";
 
-async function startCam() {
+const clamp = (v,a,b) => v < a ? a : v > b ? b : v;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+let landmarker = null;
+const modelReady = (async () => {
+  const fileset = await FilesetResolver.forVisionTasks(WASM);
+  const opts = d => ({ baseOptions:{ modelAssetPath: MODEL, delegate: d }, runningMode:"IMAGE", numFaces:1 });
+  try { landmarker = await FaceLandmarker.createFromOptions(fileset, opts("GPU")); }
+  catch (e) { landmarker = await FaceLandmarker.createFromOptions(fileset, opts("CPU")); }
+})().catch(e => { console.error(e); showErr("No se pudo cargar el modelo."); });
+
+function showErr(t){ const e = document.getElementById("err"); if(e){ e.textContent = t; e.hidden = !t; } }
+
+async function startCamera() {
+  showErr("");
+  const video = document.getElementById("video");
+  if (!navigator.mediaDevices?.getUserMedia) { showErr("Tu navegador no permite la cámara aquí. Puedes subir una foto."); return; }
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
-    const v = document.getElementById('cv'); v.srcObject = stream; await v.play();
-    document.getElementById('cov').classList.add('hide');
-    document.getElementById('sg').classList.add('show');
-    document.getElementById('cosel').style.display = 'flex';
-    document.getElementById('cctrl').style.display = 'flex';
-    document.getElementById('crpanel').classList.add('show');
-    document.getElementById('ps1').classList.remove('on');
-    document.getElementById('ps2').classList.add('on');
-    selCol('3d', document.querySelector('.cos'));
-  } catch (e) { alert('No se pudo acceder a la cámara. Por favor permite el acceso en tu navegador.'); }
+    const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"user", width:{ideal:1920}, height:{ideal:1080} }, audio:false });
+    video.srcObject = stream;
+    await new Promise(r => video.readyState >= 1 ? r() : video.onloadedmetadata = r);
+    await video.play();
+    document.getElementById("startBtn").style.display = "none"; 
+    document.getElementById("shotBtn").disabled = false;
+  } catch (e) { showErr("No se pudo acceder a la cámara. Sube una foto."); }
 }
 
-function selCol(id, el) {
-  document.querySelectorAll('.cos').forEach(i => i.classList.remove('on')); el.classList.add('on');
-  curCol = id; const d = CD[id];
-  document.getElementById('crph').style.background = d.hbg;
-  document.getElementById('crpn').style.color = d.hc;
-  document.getElementById('crpn').textContent = d.n;
-  document.getElementById('crpd').textContent = d.d;
-  if (!photoDone) drawOv();
+function toWorkCanvas(src, sw, sh, mirror) {
+  const k = Math.min(1, MAX_SIDE / Math.max(sw, sh));
+  const c = document.createElement("canvas");
+  c.width = Math.round(sw*k); c.height = Math.round(sh*k);
+  const x = c.getContext("2d");
+  if (mirror) { x.translate(c.width, 0); x.scale(-1, 1); }   
+  x.drawImage(src, 0, 0, c.width, c.height);
+  return c;
 }
 
-function drawOv() {
-  const v = document.getElementById('cv'), c = document.getElementById('cc');
-  if (!v.videoWidth) { requestAnimationFrame(drawOv); return; }
-  c.style.display = 'block'; c.width = v.videoWidth; c.height = v.videoHeight;
-  const ctx = c.getContext('2d'), d = CD[curCol];
-  const cx = c.width / 2, sy = c.height * .65, rx = c.width * .18, ry = c.height * .09;
-  ctx.clearRect(0, 0, c.width, c.height);
-  ctx.save(); ctx.beginPath(); ctx.ellipse(cx, sy, rx, ry, 0, 0, Math.PI * 2);
-  ctx.fillStyle = d.ov; ctx.fill();
-  const g = ctx.createRadialGradient(cx, sy, rx * .3, cx, sy, rx * 1.2);
-  g.addColorStop(0, d.ov.replace(/[\d.]+\)$/, '0.1)')); g.addColorStop(1, 'transparent');
-  ctx.beginPath(); ctx.ellipse(cx, sy, rx * 1.3, ry * 1.3, 0, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
-  ctx.restore();
-  ctx.font = `bold ${c.width * .024}px 'Cormorant Garamond',serif`;
-  ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.textAlign = 'center';
-  ctx.fillText(CD[curCol].n, cx, sy + ry + c.height * .05);
-  if (!photoDone) requestAnimationFrame(drawOv);
+// Configuración de Color LAB
+const LIN = new Float32Array(256);
+for (let i=0;i<256;i++){ const c=i/255; LIN[i] = c<=0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); }
+const f3 = t => t > 0.008856 ? Math.cbrt(t) : 7.787*t + 16/116;
+const fi = t => { const t3=t*t*t; return t3 > 0.008856 ? t3 : (t - 16/116)/7.787; };
+const gam = c => { c = c<=0.0031308 ? 12.92*c : 1.055*Math.pow(c,1/2.4)-0.055; return clamp(Math.round(c*255),0,255); };
+function rgb2lab(r,g,b,out,i){
+  const R=LIN[r],G=LIN[g],B=LIN[b];
+  const x=f3((0.4124*R+0.3576*G+0.1805*B)/0.95047), y=f3(0.2126*R+0.7152*G+0.0722*B), z=f3((0.0193*R+0.1192*G+0.9505*B)/1.08883);
+  out.L[i]=116*y-16; out.A[i]=500*(x-y); out.B[i]=200*(y-z);
+}
+function lab2rgb(L,a,b,d,k){
+  const y=(L+16)/116, x=a/500+y, z=y-b/200;
+  const X=fi(x)*0.95047, Y=fi(y), Z=fi(z)*1.08883;
+  d[k]=gam(3.2406*X-1.5372*Y-0.4986*Z); d[k+1]=gam(-0.9689*X+1.8758*Y+0.0415*Z); d[k+2]=gam(0.0557*X-0.2040*Y+1.0570*Z);
 }
 
-function capPhoto() {
-  const v = document.getElementById('cv'), c = document.getElementById('cc');
-  const ctx = c.getContext('2d');
-  ctx.drawImage(v, 0, 0, c.width, c.height);
-  photoDone = true;
-  if (stream) stream.getTracks().forEach(t => t.stop());
-  document.getElementById('sg').classList.remove('show');
-  document.getElementById('ps2').classList.remove('on');
-  document.getElementById('ps3').classList.add('on');
-  document.getElementById('cctrl').innerHTML = `
-    <a href="${c.toDataURL('image/png')}" download="mi-sonrisa-amatista.png" class="btn-p"><svg class="ic"><use href="#i-camera"/></svg>Quiero descargar mi foto</a>
-    <button class="btn-g" onclick="waResult()">Quiero compartir con mi asesor →</button>
-    <button style="color:var(--muted);font-size:13px;cursor:pointer;" onclick="resetCam()">Quiero reiniciar</button>`;
+// Utilidades Blur
+function boxBlur(src, w, h, r) {   
+  if (r < 1) return Float32Array.from(src);
+  const tmp = new Float32Array(w*h), out = new Float32Array(w*h), n = 2*r+1;
+  for (let y=0;y<h;y++){ let s=0; const o=y*w;
+    for (let x=-r;x<=r;x++) s += src[o+clamp(x,0,w-1)];
+    for (let x=0;x<w;x++){ tmp[o+x]=s/n; s += src[o+clamp(x+r+1,0,w-1)] - src[o+clamp(x-r,0,w-1)]; } }
+  for (let x=0;x<w;x++){ let s=0;
+    for (let y=-r;y<=r;y++) s += tmp[clamp(y,0,h-1)*w+x];
+    for (let y=0;y<h;y++){ out[y*w+x]=s/n; s += tmp[clamp(y+r+1,0,h-1)*w+x] - tmp[clamp(y-r,0,h-1)*w+x]; } }
+  return out;
+}
+const dilate = (m,w,h,r) => boxBlur(m,w,h,r).map(v => v > 0.001 ? 1 : 0);
+const erode  = (m,w,h,r) => boxBlur(m,w,h,r).map(v => v > 0.999 ? 1 : 0);
+function normConv(val, wt, w, h, r) {
+  const p = new Float32Array(w*h); for (let i=0;i<p.length;i++) p[i]=val[i]*wt[i];
+  const bp = boxBlur(p,w,h,r), bw = boxBlur(wt,w,h,r);
+  for (let i=0;i<p.length;i++) bp[i] = bw[i] > 1e-3 ? bp[i]/bw[i] : val[i];
+  return bp;
 }
 
-function resetCam() {
-  photoDone = false;
-  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-  const v = document.getElementById('cv'), c = document.getElementById('cc');
-  v.srcObject = null; c.style.display = 'none';
-  c.getContext('2d').clearRect(0, 0, 9999, 9999);
-  document.getElementById('cov').classList.remove('hide');
-  document.getElementById('sg').classList.remove('show');
-  document.getElementById('cosel').style.display = 'none';
-  document.getElementById('cctrl').style.display = 'none';
-  document.getElementById('crpanel').classList.remove('show');
-  ['ps1', 'ps2', 'ps3'].forEach((id, i) => document.getElementById(id).classList.toggle('on', i === 0));
-  document.getElementById('cctrl').innerHTML = '<button class="btn-p" onclick="capPhoto()"><svg class="ic"><use href="#i-camera"/></svg>Quiero capturar mi foto</button><button class="btn-g" onclick="resetCam()">Quiero reiniciar</button>';
+let cache = null;
+
+function analyze(work) {
+  const res = landmarker.detect(work);
+  const lm = res?.faceLandmarks?.[0];
+  if (!lm) throw new Error("Colócate de frente y con buena luz.");
+  const W = work.width, H = work.height;
+  const P = i => ({ x: lm[i].x*W, y: lm[i].y*H });
+  const mouthW = Math.hypot(P(291).x-P(61).x, P(291).y-P(61).y);
+  const open = Math.hypot(P(14).x-P(13).x, P(14).y-P(13).y);
+  if (open / mouthW < 0.05) throw new Error("Sonríe ampliamente mostrando los dientes.");
+
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  for (const i of INNER_LIP){ const p=P(i); x0=Math.min(x0,p.x); y0=Math.min(y0,p.y); x1=Math.max(x1,p.x); y1=Math.max(y1,p.y); }
+  const pad = Math.ceil(mouthW*0.06);
+  x0=Math.floor(clamp(x0-pad,0,W)); y0=Math.floor(clamp(y0-pad,0,H)); x1=Math.ceil(clamp(x1+pad,0,W)); y1=Math.ceil(clamp(y1+pad,0,H));
+  const w=x1-x0, h=y1-y0, N=w*h;
+  const wctx = work.getContext("2d");
+  const img = wctx.getImageData(x0,y0,w,h), d = img.data;
+
+  const mc = document.createElement("canvas"); mc.width=w; mc.height=h;
+  const mx = mc.getContext("2d");
+  mx.beginPath();
+  INNER_LIP.forEach((i,k)=>{ const p=P(i); k ? mx.lineTo(p.x-x0,p.y-y0) : mx.moveTo(p.x-x0,p.y-y0); });
+  mx.closePath(); mx.fillStyle="#fff"; mx.fill();
+  const md = mx.getImageData(0,0,w,h).data;
+  let hard = new Float32Array(N); for (let i=0;i<N;i++) hard[i] = md[i*4+3] > 127 ? 1 : 0;
+  const shrink = Math.max(1, Math.round(mouthW/150));
+  hard = erode(hard,w,h,shrink);
+  const feather = Math.max(1, Math.round(mouthW/90));
+  const mouthSoft = boxBlur(boxBlur(hard,w,h,feather),w,h,feather);
+
+  const lab = { L:new Float32Array(N), A:new Float32Array(N), B:new Float32Array(N) };
+  for (let i=0;i<N;i++) rgb2lab(d[i*4],d[i*4+1],d[i*4+2],lab,i);
+
+  const Ls = []; for (let i=0;i<N;i++) if (hard[i]) Ls.push(lab.L[i]);
+  Ls.sort((a,b)=>a-b);
+  const pct = q => Ls[Math.floor(q*(Ls.length-1))];
+  const thrL = Math.max(35, pct(0.3) + (pct(0.9) - pct(0.3))*0.35);
+
+  let teeth = new Float32Array(N);
+  for (let i=0;i<N;i++) if (hard[i] && lab.L[i] > thrL && lab.A[i] < 18 && lab.B[i] < 40) teeth[i]=1;
+  const mr = Math.max(1, Math.round(mouthW/160));
+  teeth = dilate(erode(teeth,w,h,mr),w,h,mr);            
+  teeth = erode(dilate(teeth,w,h,mr),w,h,mr);            
+  for (let i=0;i<N;i++) teeth[i] *= hard[i];
+  let tCount=0, tL=0, tA=0, tB=0;
+  for (let i=0;i<N;i++) if (teeth[i]) { tCount++; tL+=lab.L[i]; tA+=lab.A[i]; tB+=lab.B[i]; }
+  if (tCount < 80) throw new Error("No vemos tus dientes. Sonríe más amplio.");
+  tL/=tCount; tA/=tCount; tB/=tCount;
+
+  const gr = Math.max(2, Math.round(mouthW/70));
+  const closed = erode(dilate(teeth,w,h,gr),w,h,gr);
+  const gaps = new Float32Array(N);
+  for (let i=0;i<N;i++) if (closed[i] && !teeth[i] && hard[i] && lab.A[i] < 25) gaps[i]=1;
+
+  const teethSoft = boxBlur(teeth,w,h,Math.max(1,Math.round(mouthW/200)));
+  const gapsSoft = boxBlur(gaps,w,h,1);
+
+  let sL=0, sn=0;
+  for (const ci of CHEEKS) {
+    const p=P(ci), r=Math.max(3,Math.round(mouthW/25));
+    const cd = wctx.getImageData(clamp(Math.round(p.x-r),0,W-1), clamp(Math.round(p.y-r),0,H-1), 2*r, 2*r).data;
+    const tmp={L:[0],A:[0],B:[0]};
+    for (let k=0;k<cd.length;k+=4){ rgb2lab(cd[k],cd[k+1],cd[k+2],tmp,0); sL+=tmp.L[0]; sn++; }
+  }
+  const skinL = sn ? sL/sn : 65;
+  const capL = clamp(Math.max(skinL + 22, tL + 6), 70, 93);
+
+  const sr = Math.max(2, Math.round(mouthW/60));
+  const smL = normConv(lab.L, teeth, w, h, sr), smA = normConv(lab.A, teeth, w, h, sr), smB = normConv(lab.B, teeth, w, h, sr);
+  const fr = gr + 2;
+  const fillL = normConv(lab.L, teeth, w, h, fr), fillA = normConv(lab.A, teeth, w, h, fr), fillB = normConv(lab.B, teeth, w, h, fr);
+
+  return { work, x0, y0, w, h, N, orig: new Uint8ClampedArray(d), lab, mouthSoft, teethSoft, gapsSoft, tL, tA, tB, capL, smL, smA, smB, fillL, fillA, fillB };
 }
+
+function render(styleKey) {
+  const c = cache, st = STYLES[styleKey];
+  const afterC = document.getElementById("afterC");
+  afterC.width = c.work.width; afterC.height = c.work.height;
+  const ax = afterC.getContext("2d");
+  ax.drawImage(c.work, 0, 0);
+  const out = new ImageData(new Uint8ClampedArray(c.orig), c.w, c.h), d = out.data;
+  const newMean = c.tL + (c.capL - c.tL) * st.lift;
+  const tmp = new Uint8ClampedArray(3);
+  for (let i=0;i<c.N;i++) {
+    const m = c.mouthSoft[i];
+    if (m < 0.01) continue;
+    let wT = c.teethSoft[i] * m, wG = c.gapsSoft[i] * m * st.gaps;
+    if (wT < 0.01 && wG < 0.01) continue;
+    let L = c.lab.L[i], A = c.lab.A[i], B = c.lab.B[i];
+    if (wG > 0.01 && wT < 0.5) {
+      const g = wG*(1-wT);
+      L += (c.fillL[i]-L)*g; A += (c.fillA[i]-A)*g; B += (c.fillB[i]-B)*g;
+      wT = Math.max(wT, g);
+    }
+    if (st.smooth > 0) { L += (c.smL[i]-L)*st.smooth; A += (c.smA[i]-A)*st.smooth; B += (c.smB[i]-B)*st.smooth; }
+    let Ln = newMean + (L - c.tL) * st.keep;
+    if (Ln > c.capL) Ln = c.capL + (Ln - c.capL) * 0.25;      
+    let An = A + (c.tA - A)*st.even, Bn = B + (c.tB - B)*st.even;
+    An *= st.aK; Bn = Bn > 0 ? Bn*st.bK : Bn*0.8;
+    const k = i*4;
+    lab2rgb(Ln, An, Bn, tmp, 0);
+    d[k] += (tmp[0]-d[k])*wT; d[k+1] += (tmp[1]-d[k+1])*wT; d[k+2] += (tmp[2]-d[k+2])*wT;
+  }
+  const rc = document.createElement("canvas"); rc.width=c.w; rc.height=c.h;
+  rc.getContext("2d").putImageData(out,0,0);
+  ax.drawImage(rc, c.x0, c.y0);
+}
+
+async function runProcess(work) {
+  showErr("");
+  const video = document.getElementById("video");
+  document.getElementById("proc").hidden = false; document.getElementById("shotBtn").disabled = true;
+  const t0 = performance.now();
+  try {
+    await modelReady;
+    if (!landmarker) throw new Error("El modelo de IA no cargó.");
+    await sleep(30); 
+    cache = analyze(work);
+    const bc = document.getElementById("beforeC"); bc.width = work.width; bc.height = work.height;
+    bc.getContext("2d").drawImage(work, 0, 0);
+    render(current);
+    const rest = MIN_PROC_MS - (performance.now() - t0);
+    if (rest > 0) await sleep(rest);
+    document.getElementById("capView").hidden = true; document.getElementById("resView").hidden = false;
+    setSlider(0.5);
+    document.getElementById("resView").scrollIntoView({ behavior:"smooth", block:"start" });
+  } catch (e) {
+    const rest = 600 - (performance.now() - t0); if (rest > 0) await sleep(rest);
+    showErr(e.message || "Ocurrió un error en el análisis.");
+  } finally {
+    document.getElementById("proc").hidden = true; document.getElementById("shotBtn").disabled = !video.srcObject;
+  }
+}
+
+// Event Listeners Dinámicos (Se asignan al cargar para que funcionen con el nuevo HTML)
+document.addEventListener("DOMContentLoaded", () => {
+  const sb = document.getElementById("startBtn"); if(sb) sb.onclick = startCamera;
+  
+  const shot = document.getElementById("shotBtn");
+  if(shot) shot.onclick = () => { 
+    const video = document.getElementById("video");
+    if (video.videoWidth) runProcess(toWorkCanvas(video, video.videoWidth, video.videoHeight, true)); 
+  };
+  
+  const fileIn = document.getElementById("fileIn");
+  if(fileIn) fileIn.onchange = async e => {
+    const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
+    try {
+      const bmp = await createImageBitmap(f, { imageOrientation: "from-image" });
+      runProcess(toWorkCanvas(bmp, bmp.width, bmp.height, false));
+    } catch (er) { showErr("Imagen no soportada."); }
+  };
+
+  const again = document.getElementById("againBtn");
+  if(again) again.onclick = () => { document.getElementById("resView").hidden = true; document.getElementById("capView").hidden = false; showErr(""); };
+
+  const stylesDiv = document.getElementById("styles");
+  if(stylesDiv) {
+    for (const [key, st] of Object.entries(STYLES)) {
+      const b = document.createElement("button");
+      b.type="button"; b.className = "sty" + (key===current ? " active" : ""); b.textContent = st.name;
+      b.onclick = () => {
+        current = key;
+        document.querySelectorAll(".sty").forEach(e=>e.classList.remove("active")); b.classList.add("active");
+        if (cache) render(current);
+      };
+      stylesDiv.appendChild(b);
+    }
+  }
+
+  // Slider Antes/Después
+  const cmp = document.getElementById("cmp"), afterEl = document.getElementById("afterC"), divider = document.getElementById("divider");
+  window.setSlider = function(f) {
+    f = clamp(f, 0, 1);
+    if(afterEl) afterEl.style.clipPath = `inset(0 0 0 ${f*100}%)`;   
+    if(divider) divider.style.left = `${f*100}%`;
+  }
+  let dragging = false;
+  const posF = e => { const r = cmp.getBoundingClientRect(); return (e.clientX - r.left) / r.width; };
+  if(cmp) {
+    cmp.addEventListener("pointerdown", e => { dragging = true; cmp.setPointerCapture(e.pointerId); setSlider(posF(e)); });
+    cmp.addEventListener("pointermove", e => { if (dragging) setSlider(posF(e)); });
+    cmp.addEventListener("pointerup", () => dragging = false);
+    cmp.addEventListener("pointercancel", () => dragging = false);
+  }
+
+  // Descarga
+  const dl = document.getElementById("dlBtn");
+  if(dl) dl.onclick = () => {
+    if (!cache) return;
+    const src = document.getElementById("afterC");
+    const o = document.createElement("canvas"); o.width = src.width; o.height = src.height;
+    const x = o.getContext("2d"); x.drawImage(src, 0, 0);
+    const fs = Math.max(14, Math.round(o.width/60));
+    x.fillStyle = "rgba(0,0,0,0.5)"; x.fillRect(0, o.height-fs*2, o.width, fs*2);
+    x.fillStyle = "#fff"; x.font = `${fs}px system-ui, sans-serif`;
+    x.fillText("Simulación por Amatista AI. No es un resultado garantizado.", fs*0.7, o.height-fs*0.65);
+    o.toBlob(blob => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = `amatista-sonrisa-${current}.png`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    }, "image/png");
+  };
+});
 
 /* ==========================================================================
    WHATSAPP Y MODALES LEGALES
