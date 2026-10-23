@@ -254,13 +254,14 @@ const CHEEKS = [205, 425];
 const MAX_SIDE = 1600;     
 const MIN_PROC_MS = 1700;  
 
-/* Parámetros adaptados a las Colecciones Amatista */
+/* Tono de referencia de cada colección. El cuerpo del diente se lleva a ese color
+   y keep/even/smooth solo conservan sombra, variación y acabado. */
 const STYLES = {
-  '3d':      { name: "Diseño 3D", lift:0.4, keep:0.9, bK:0.6, aK:0.8, even:0.3, smooth:0, gaps:0 },
-  'emax':    { name: "E·MAX",     lift:0.7, keep:0.8, bK:0.3, aK:0.5, even:0.5, smooth:0.2, gaps:0 },
-  'natura':  { name: "Natura",    lift:0.6, keep:0.9, bK:0.4, aK:0.7, even:0.4, smooth:0.1, gaps:0 },
-  'glow':    { name: "Glow",      lift:0.9, keep:0.6, bK:0.1, aK:0.3, even:0.7, smooth:0.5, gaps:0.2 },
-  'prisma':  { name: "Prisma",    lift:0.95,keep:0.5, bK:0.05,aK:0.2, even:0.8, smooth:0.8, gaps:0.5 }
+  '3d':     { name: "Diseño 3D", hex: "#f0e7fb", keep: 0.58, even: 0.42, smooth: 0.12, gaps: 0,    panel: "linear-gradient(135deg,#7B5A90,#482D54)", ink: "#fff",    muted: "rgba(255,255,255,.6)", blurb: "La colección de entrada al diseño digital. Resina + zirconio para un resultado accesible y personalizado." },
+  'emax':   { name: "E·MAX",     hex: "#f6f2ff", keep: 0.46, even: 0.70, smooth: 0.30, gaps: 0,    panel: "linear-gradient(135deg,#5C2A52,#2B1228)", ink: "#fff",    muted: "rgba(255,255,255,.6)", blurb: "El E-MAX es la colección de disilicato de litio con tono único, el material con mayor respaldo científico en odontología estética a nivel mundial." },
+  'natura': { name: "Natura",    hex: "#fffbf2", keep: 0.68, even: 0.28, smooth: 0.14, gaps: 0,    panel: "linear-gradient(135deg,#FBF3E4,#EDDCC0)", ink: "#3A2010", muted: "rgba(90,58,32,.6)",    blurb: "E-MAX estratificado en multicapa, con translucidez y mamelones reales que recrean el diente natural con un realismo excepcional." },
+  'glow':   { name: "Glow",      hex: "#f8fbff", keep: 0.38, even: 0.75, smooth: 0.55, gaps: 0.2,  panel: "linear-gradient(135deg,#FFF2B8,#E8B923)", ink: "#3A2800", muted: "rgba(74,48,0,.6)",     blurb: "Fabricada en porcelana feldespática 100% premium, el material que produce el brillo más intenso y la reflexión de la luz más natural posible." },
+  'prisma': { name: "Prisma",    hex: "#f8fbff", keep: 0.32, even: 0.85, smooth: 0.70, gaps: 0.45, panel: "linear-gradient(135deg,#FCFCFE,#AEAEBA)", ink: "#282828", muted: "rgba(40,40,40,.55)",    blurb: "La técnica de cortes prismáticos crea una reflexión de la luz multidimensional que hace cada carilla única e irrepetible." }
 };
 let current = "3d";
 
@@ -316,6 +317,12 @@ function lab2rgb(L,a,b,d,k){
   const y=(L+16)/116, x=a/500+y, z=y-b/200;
   const X=fi(x)*0.95047, Y=fi(y), Z=fi(z)*1.08883;
   d[k]=gam(3.2406*X-1.5372*Y-0.4986*Z); d[k+1]=gam(-0.9689*X+1.8758*Y+0.0415*Z); d[k+2]=gam(0.0557*X-0.2040*Y+1.0570*Z);
+}
+for (const st of Object.values(STYLES)) {
+  const n = parseInt(st.hex.slice(1), 16);
+  const o = { L:[0], A:[0], B:[0] };
+  rgb2lab((n >> 16) & 255, (n >> 8) & 255, n & 255, o, 0);
+  st.lab = { L:o.L[0], A:o.A[0], B:o.B[0] };
 }
 
 // Utilidades Blur
@@ -416,6 +423,21 @@ function analyze(work) {
   return { work, x0, y0, w, h, N, orig: new Uint8ClampedArray(d), lab, mouthSoft, teethSoft, gapsSoft, tL, tA, tB, capL, smL, smA, smB, fillL, fillA, fillB };
 }
 
+function showCollection(styleKey) {
+  const st = STYLES[styleKey];
+  if (!st) return;
+  const name = document.getElementById("crpn");
+  const desc = document.getElementById("crpd");
+  const head = document.getElementById("crph");
+  const chip = document.getElementById("toneChip");
+  if (name) { name.textContent = st.name; name.style.color = st.ink; }
+  if (desc) desc.textContent = st.blurb;
+  if (head) head.style.background = st.panel;
+  const lbl = head && head.querySelector(".crp-lbl");
+  if (lbl) lbl.style.color = st.muted;
+  if (chip) chip.style.background = st.hex;
+}
+
 function render(styleKey) {
   const c = cache, st = STYLES[styleKey];
   const afterC = document.getElementById("afterC");
@@ -423,7 +445,6 @@ function render(styleKey) {
   const ax = afterC.getContext("2d");
   ax.drawImage(c.work, 0, 0);
   const out = new ImageData(new Uint8ClampedArray(c.orig), c.w, c.h), d = out.data;
-  const newMean = c.tL + (c.capL - c.tL) * st.lift;
   const tmp = new Uint8ClampedArray(3);
   for (let i=0;i<c.N;i++) {
     const m = c.mouthSoft[i];
@@ -437,10 +458,16 @@ function render(styleKey) {
       wT = Math.max(wT, g);
     }
     if (st.smooth > 0) { L += (c.smL[i]-L)*st.smooth; A += (c.smA[i]-A)*st.smooth; B += (c.smB[i]-B)*st.smooth; }
-    let Ln = newMean + (L - c.tL) * st.keep;
-    if (Ln > c.capL) Ln = c.capL + (Ln - c.capL) * 0.25;      
-    let An = A + (c.tA - A)*st.even, Bn = B + (c.tB - B)*st.even;
-    An *= st.aK; Bn = Bn > 0 ? Bn*st.bK : Bn*0.8;
+    const dL = L - c.tL;
+    const spec = clamp(dL / 14, 0, 1);
+    let Ln = st.lab.L + dL * st.keep;
+    if (Ln > st.lab.L) Ln = st.lab.L + (Ln - st.lab.L) * 0.35;
+    Ln = clamp(Ln, 32, 98.5);
+    const vary = (1 - st.even) * (1 - spec * 0.85);
+    let An = st.lab.A + (A - c.tA) * vary;
+    let Bn = st.lab.B + (B - c.tB) * vary;
+    An *= 1 - spec * 0.8;
+    Bn *= 1 - spec * 0.8;
     const k = i*4;
     lab2rgb(Ln, An, Bn, tmp, 0);
     d[k] += (tmp[0]-d[k])*wT; d[k+1] += (tmp[1]-d[k+1])*wT; d[k+2] += (tmp[2]-d[k+2])*wT;
@@ -503,13 +530,16 @@ document.addEventListener("DOMContentLoaded", () => {
     for (const [key, st] of Object.entries(STYLES)) {
       const b = document.createElement("button");
       b.type="button"; b.className = "sty" + (key===current ? " active" : ""); b.textContent = st.name;
+      b.style.background = st.hex;
       b.onclick = () => {
         current = key;
         document.querySelectorAll(".sty").forEach(e=>e.classList.remove("active")); b.classList.add("active");
+        showCollection(current);
         if (cache) render(current);
       };
       stylesDiv.appendChild(b);
     }
+    showCollection(current);
   }
 
   // Slider Antes/Después
