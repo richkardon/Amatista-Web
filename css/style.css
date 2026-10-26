@@ -300,12 +300,17 @@ footer { background: var(--ink); padding: 56px 80px 30px; position: relative; ov
 .di .ic { width: 74px; height: 74px; opacity: .18; }
 .ba-card { display: block; background: #1a1220; }
 .ba-slide { position: absolute; top: 0; left: 0; right: 0; bottom: 38%; overflow: hidden; cursor: ew-resize; touch-action: none; user-select: none; }
-.ba-slide .ba-photo { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; object-position: center 42%; display: block; pointer-events: none; }
+.ba-frame { position: absolute; inset: 0; overflow: hidden; }
 .ba-after { z-index: 1; clip-path: inset(0 0 0 50%); }
+.ba-slide .ba-photo { position: absolute; width: 118%; height: auto; max-width: none; }
+.ba-slide .is-before { left: -13.6%; top: -30.7%; }
+.ba-slide .is-after { left: -7.2%; top: -29.7%; }
 .ba-divider { position: absolute; top: 0; bottom: 0; left: 50%; width: 3px; background: #fff; transform: translateX(-50%); z-index: 2; pointer-events: none; box-shadow: 0 0 0 1px rgba(20,12,26,.25); }
 .ba-divider::after { content: "⟷"; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: #fff; color: var(--ink); width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,.3); }
 .di-ba { position: absolute; bottom: 0; left: 0; right: 0; display: grid; grid-template-columns: 1fr 1fr; height: 38%; z-index: 3; }
-.di-ba .before, .di-ba .after { background-color: transparent; backdrop-filter: none; background-size: cover; background-position: center 48%; }
+.di-ba .before, .di-ba .after { background-color: transparent; backdrop-filter: none; background-size: cover; }
+.di-ba .before { background-position: 54% 46%; }
+.di-ba .after { background-position: 49% 46%; }
 .di-ba .before span, .di-ba .after span { position: relative; z-index: 1; background: rgba(20,12,26,.55); padding: 6px 12px; border-radius: 20px; }
 .before { background: rgba(200,180,180,.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; letter-spacing: .1em; color: rgba(255,255,255,.75); }
 .after { background: rgba(72,45,84,.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; letter-spacing: .1em; color: rgba(255,255,255,.9); }
