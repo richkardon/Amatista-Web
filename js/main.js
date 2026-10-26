@@ -260,8 +260,8 @@ const STYLES = {
   '3d':     { name: "Diseño 3D", hex: "#f0e7fb", tint: 0.16, hue: 0.78, keep: 0.86, even: 0.22, smooth: 0.06, gaps: 0,    panel: "linear-gradient(135deg,#7B5A90,#482D54)", ink: "#fff",    muted: "rgba(255,255,255,.6)", blurb: "La colección de entrada al diseño digital. Resina + zirconio para un resultado accesible y personalizado." },
   'emax':   { name: "E·MAX",     hex: "#f6f2ff", tint: 0.22, hue: 0.72, keep: 0.78, even: 0.40, smooth: 0.14, gaps: 0,    panel: "linear-gradient(135deg,#5C2A52,#2B1228)", ink: "#fff",    muted: "rgba(255,255,255,.6)", blurb: "El E-MAX es la colección de disilicato de litio con tono único, el material con mayor respaldo científico en odontología estética a nivel mundial." },
   'natura': { name: "Natura",    hex: "#fffbf2", tint: 0.18, hue: 0.84, keep: 0.90, even: 0.16, smooth: 0.06, gaps: 0,    panel: "linear-gradient(135deg,#FBF3E4,#EDDCC0)", ink: "#3A2010", muted: "rgba(90,58,32,.6)",    blurb: "E-MAX estratificado en multicapa, con translucidez y mamelones reales que recrean el diente natural con un realismo excepcional." },
-  'glow':   { name: "Glow",      hex: "#f8fbff", tint: 0.28, hue: 0.76, keep: 0.72, even: 0.46, smooth: 0.22, gaps: 0.06, panel: "linear-gradient(135deg,#FFF2B8,#E8B923)", ink: "#3A2800", muted: "rgba(74,48,0,.6)",     blurb: "Fabricada en porcelana feldespática 100% premium, el material que produce el brillo más intenso y la reflexión de la luz más natural posible." },
-  'prisma': { name: "Prisma",    hex: "#f5f4f9", tint: 0.28, hue: 0.76, keep: 0.70, even: 0.52, smooth: 0.28, gaps: 0.10, panel: "linear-gradient(135deg,#FCFCFE,#AEAEBA)", ink: "#282828", muted: "rgba(40,40,40,.55)",    blurb: "La técnica de cortes prismáticos crea una reflexión de la luz multidimensional que hace cada carilla única e irrepetible." }
+  'glow':   { name: "Glow",      hex: "#f8fbff", tint: 0.12, hue: 0.68, keep: 0.94, even: 0.12, smooth: 0.04, gaps: 0, panel: "linear-gradient(135deg,#FFF2B8,#E8B923)", ink: "#3A2800", muted: "rgba(74,48,0,.6)",     blurb: "Fabricada en porcelana feldespática 100% premium, el material que produce el brillo más intenso y la reflexión de la luz más natural posible." },
+  'prisma': { name: "Prisma",    hex: "#f5f4f9", tint: 0.10, hue: 0.70, keep: 0.95, even: 0.10, smooth: 0.04, gaps: 0, panel: "linear-gradient(135deg,#FCFCFE,#AEAEBA)", ink: "#282828", muted: "rgba(40,40,40,.55)",    blurb: "La técnica de cortes prismáticos crea una reflexión de la luz multidimensional que hace cada carilla única e irrepetible." }
 };
 let current = "3d";
 
@@ -460,13 +460,15 @@ function render(styleKey) {
     if (st.smooth > 0) { L += (c.smL[i]-L)*st.smooth; A += (c.smA[i]-A)*st.smooth; B += (c.smB[i]-B)*st.smooth; }
     const dL = L - c.tL;
     const spec = clamp(dL / 20, 0, 1);
-    const room = Math.min(11, Math.max(0, 84 - c.tL));
-    const bodyL = c.tL + Math.min((st.lab.L - c.tL) * st.tint, room);
-    let Ln = bodyL + dL * st.keep;
-    const ceil = Math.min(86, bodyL + 7);
-    if (Ln > ceil) Ln = ceil + (Ln - ceil) * 0.3;
-    Ln = clamp(Ln, 28, 86);
-    const hue = st.hue * (1 - spec * 0.4);
+    const seam = clamp(-dL / 7, 0, 1);
+    const room = Math.min(8, Math.max(0, 80 - c.tL));
+    const lift = Math.min(Math.max(st.lab.L - c.tL, 0) * st.tint, room);
+    const shaped = c.tL + lift + dL * st.keep;
+    let Ln = shaped * (1 - seam) + L * seam;
+    const ceil = Math.min(82, c.tL + lift + 9);
+    if (Ln > ceil) Ln = ceil + (Ln - ceil) * 0.45;
+    Ln = clamp(Ln, 28, 82);
+    const hue = st.hue * (1 - spec * 0.4) * (1 - seam * 0.75);
     const vary = 1 - st.even;
     let An = c.tA + (st.lab.A - c.tA) * hue + (A - c.tA) * vary;
     let Bn = c.tB + (st.lab.B - c.tB) * hue + (B - c.tB) * vary;
@@ -543,6 +545,27 @@ document.addEventListener("DOMContentLoaded", () => {
       stylesDiv.appendChild(b);
     }
     showCollection(current);
+  }
+
+  const homeSlide = document.getElementById("homeSlide");
+  const homeBefore = document.getElementById("homeBefore");
+  const homeDivider = document.getElementById("homeDivider");
+  const setHomeSlider = f => {
+    f = clamp(f, 0, 1);
+    if (homeBefore) homeBefore.style.clipPath = `inset(0 ${(1 - f) * 100}% 0 0)`;
+    if (homeDivider) homeDivider.style.left = `${f * 100}%`;
+  };
+  if (homeSlide) {
+    let homeDrag = false;
+    const homePos = e => {
+      const r = homeSlide.getBoundingClientRect();
+      return (e.clientX - r.left) / r.width;
+    };
+    setHomeSlider(0.5);
+    homeSlide.addEventListener("pointerdown", e => { homeDrag = true; homeSlide.setPointerCapture(e.pointerId); setHomeSlider(homePos(e)); });
+    homeSlide.addEventListener("pointermove", e => { if (homeDrag) setHomeSlider(homePos(e)); });
+    homeSlide.addEventListener("pointerup", () => homeDrag = false);
+    homeSlide.addEventListener("pointercancel", () => homeDrag = false);
   }
 
   // Slider Antes/Después

@@ -299,12 +299,12 @@ footer { background: var(--ink); padding: 56px 80px 30px; position: relative; ov
 .di { width: 100%; aspect-ratio: 4/5; border-radius: 26px; overflow: hidden; position: relative; background: linear-gradient(145deg, var(--pristine), #D8C4A8); display: flex; align-items: center; justify-content: center; color: var(--crown); }
 .di .ic { width: 74px; height: 74px; opacity: .18; }
 .ba-card { display: block; background: #1a1220; }
-.ba-split { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; }
-.ba-split::after { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: rgba(255,255,255,.9); transform: translateX(-50%); z-index: 1; }
-.ba-side { position: relative; margin: 0; overflow: hidden; }
-.ba-side img { width: 100%; height: 100%; object-fit: cover; object-position: center 48%; display: block; }
-.ba-side span { position: absolute; left: 50%; top: 16px; transform: translateX(-50%); background: rgba(20,12,26,.62); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .1em; padding: 6px 12px; border-radius: 20px; }
-.di-ba { position: absolute; bottom: 0; left: 0; right: 0; display: grid; grid-template-columns: 1fr 1fr; height: 38%; }
+.ba-slide { position: absolute; top: 0; left: 0; right: 0; height: 62%; overflow: hidden; cursor: ew-resize; touch-action: none; user-select: none; }
+.ba-slide img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 46%; display: block; pointer-events: none; }
+.ba-top { z-index: 1; clip-path: inset(0 50% 0 0); }
+.ba-divider { position: absolute; top: 0; bottom: 0; left: 50%; width: 3px; background: #fff; transform: translateX(-50%); z-index: 2; pointer-events: none; }
+.ba-divider::after { content: "⟷"; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: #fff; color: var(--ink); width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,.3); }
+.di-ba { position: absolute; bottom: 0; left: 0; right: 0; display: grid; grid-template-columns: 1fr 1fr; height: 38%; z-index: 3; }
 .before { background: rgba(200,180,180,.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; letter-spacing: .1em; color: rgba(255,255,255,.75); }
 .after { background: rgba(72,45,84,.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; letter-spacing: .1em; color: rgba(255,255,255,.9); }
 .df { position: absolute; bottom: -20px; left: -20px; background: var(--crown); border-radius: 18px; padding: 18px 22px; box-shadow: 0 20px 40px rgba(72,45,84,.3); }
