@@ -548,11 +548,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const homeSlide = document.getElementById("homeSlide");
-  const homeBefore = document.getElementById("homeBefore");
+  const homeAfter = document.getElementById("homeAfter");
   const homeDivider = document.getElementById("homeDivider");
   const setHomeSlider = f => {
     f = clamp(f, 0, 1);
-    if (homeBefore) homeBefore.style.clipPath = `inset(0 ${(1 - f) * 100}% 0 0)`;
+    if (homeAfter) homeAfter.style.clipPath = `inset(0 0 0 ${f * 100}%)`;
     if (homeDivider) homeDivider.style.left = `${f * 100}%`;
   };
   if (homeSlide) {
