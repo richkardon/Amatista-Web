@@ -804,27 +804,26 @@ footer { background: var(--ink); padding: 56px 80px 30px; position: relative; ov
   .sect-grid { padding: 0 32px 56px; }
   .tiers-grid { grid-template-columns: 1fr 1fr; }
 
-  /* NUEVO: Carrusel deslizable para los logos en móvil */
+  /* Colecciones apiladas en móvil, con los colores y logos originales */
   .cband {
     display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch; /* Scroll suave en iPhone */
-    scrollbar-width: none; /* Oculta la barra en Firefox */
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
   }
-  
-  .cband::-webkit-scrollbar {
-    display: none; /* Oculta la barra en Chrome/Safari */
-  }
-  
   .cb {
-    flex: 0 0 150px; /* Fuerza a cada bloque a medir 150px de ancho */
-    scroll-snap-align: center;
+    flex: none;
+    width: 100%;
+    height: 88px;
   }
-  
+  .cb:hover { flex: none; }
   .cb-logo {
-    max-width: 85%;
-    padding: 0;
+    max-width: 220px;
+    max-height: 62px;
+    width: auto;
+    height: auto;
+    padding: 0 18px;
+    object-fit: contain;
   }
   
   /* Mostrar y estilizar la foto de inicio en celulares */
