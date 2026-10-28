@@ -245,8 +245,6 @@ function qreset() {
 /* ==========================================================================
    SIMULADOR DE CÁMARA (IA AVANZADA - MEDIAPIPE)
    ========================================================================== */
-import { FilesetResolver, FaceLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest";
-
 const WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm";
 const MODEL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
 const INNER_LIP = [78,191,80,81,82,13,312,311,310,415,308,324,318,402,317,14,87,178,88,95];
@@ -270,6 +268,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 let landmarker = null;
 const modelReady = (async () => {
+  const { FilesetResolver, FaceLandmarker } = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest");
   const fileset = await FilesetResolver.forVisionTasks(WASM);
   const opts = d => ({ baseOptions:{ modelAssetPath: MODEL, delegate: d }, runningMode:"IMAGE", numFaces:1 });
   try { landmarker = await FaceLandmarker.createFromOptions(fileset, opts("GPU")); }
@@ -610,6 +609,12 @@ document.addEventListener("DOMContentLoaded", () => {
 function wa() {
   const m = encodeURIComponent('Hola Amatista, me interesa conocer más sobre sus tratamientos de diseño de sonrisa.');
   window.open('https://wa.me/13322310346?text=' + m, '_blank');
+}
+
+function goValoracion() {
+  const page = document.getElementById('pg-' + cur);
+  const form = page && page.querySelector('.leadform');
+  if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function waResult() {
